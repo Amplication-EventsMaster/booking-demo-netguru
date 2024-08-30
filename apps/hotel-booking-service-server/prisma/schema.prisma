@@ -1,0 +1,83 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DB_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Room {
+  bookings    Booking[]
+  createdAt   DateTime           @default(now())
+  description String?
+  hotel       Hotel?             @relation(fields: [hotelId], references: [id])
+  hotelId     String?
+  id          String             @id @default(cuid())
+  name        String?
+  price       Float?
+  roomNumber  String?
+  typeField   EnumRoomTypeField?
+  updatedAt   DateTime           @updatedAt
+}
+
+model Hotel {
+  address     String?
+  createdAt   DateTime @default(now())
+  description String?
+  id          String   @id @default(cuid())
+  name        String?
+  phoneNumber String?
+  rating      Float?
+  rooms       Room[]
+  updatedAt   DateTime @updatedAt
+}
+
+model Payment {
+  amount      Float?
+  booking     Booking?           @relation(fields: [bookingId], references: [id])
+  bookingId   String?
+  createdAt   DateTime           @default(now())
+  description String?
+  id          String             @id @default(cuid())
+  name        String?
+  paymentDate DateTime?
+  status      EnumPaymentStatus?
+  updatedAt   DateTime           @updatedAt
+}
+
+model Customer {
+  bookings    Booking[]
+  createdAt   DateTime  @default(now())
+  description String?
+  email       String?
+  id          String    @id @default(cuid())
+  name        String?
+  phoneNumber String?
+  updatedAt   DateTime  @updatedAt
+}
+
+model Booking {
+  checkInDate  DateTime?
+  checkOutDate DateTime?
+  comment      String?
+  createdAt    DateTime  @default(now())
+  customer     Customer? @relation(fields: [customerId], references: [id])
+  customerId   String?
+  description  String?
+  id           String    @id @default(cuid())
+  name         String?
+  payments     Payment[]
+  room         Room?     @relation(fields: [roomId], references: [id])
+  roomId       String?
+  totalPrice   Float?
+  updatedAt    DateTime  @updatedAt
+}
+
+enum EnumRoomTypeField {
+  Option1
+}
+
+enum EnumPaymentStatus {
+  Option1
+}
