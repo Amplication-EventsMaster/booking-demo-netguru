@@ -16,7 +16,11 @@ import * as errors from "../../errors";
 import { Request } from "express";
 import { plainToClass } from "class-transformer";
 import { ApiNestedQuery } from "../../decorators/api-nested-query.decorator";
+import * as nestAccessControl from "nest-access-control";
+import * as defaultAuthGuard from "../../auth/defaultAuth.guard";
 import { HotelService } from "../hotel.service";
+import { AclValidateRequestInterceptor } from "../../interceptors/aclValidateRequest.interceptor";
+import { AclFilterResponseInterceptor } from "../../interceptors/aclFilterResponse.interceptor";
 import { HotelCreateInput } from "./HotelCreateInput";
 import { Hotel } from "./Hotel";
 import { HotelFindManyArgs } from "./HotelFindManyArgs";
@@ -26,10 +30,24 @@ import { RoomFindManyArgs } from "../../room/base/RoomFindManyArgs";
 import { Room } from "../../room/base/Room";
 import { RoomWhereUniqueInput } from "../../room/base/RoomWhereUniqueInput";
 
+@swagger.ApiBearerAuth()
+@common.UseGuards(defaultAuthGuard.DefaultAuthGuard, nestAccessControl.ACGuard)
 export class HotelControllerBase {
-  constructor(protected readonly service: HotelService) {}
+  constructor(
+    protected readonly service: HotelService,
+    protected readonly rolesBuilder: nestAccessControl.RolesBuilder
+  ) {}
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @common.Post()
   @swagger.ApiCreatedResponse({ type: Hotel })
+  @nestAccessControl.UseRoles({
+    resource: "Hotel",
+    action: "create",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async createHotel(@common.Body() data: HotelCreateInput): Promise<Hotel> {
     return await this.service.createHotel({
       data: data,
@@ -46,9 +64,18 @@ export class HotelControllerBase {
     });
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @common.Get()
   @swagger.ApiOkResponse({ type: [Hotel] })
   @ApiNestedQuery(HotelFindManyArgs)
+  @nestAccessControl.UseRoles({
+    resource: "Hotel",
+    action: "read",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async hotels(@common.Req() request: Request): Promise<Hotel[]> {
     const args = plainToClass(HotelFindManyArgs, request.query);
     return this.service.hotels({
@@ -66,9 +93,18 @@ export class HotelControllerBase {
     });
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @common.Get("/:id")
   @swagger.ApiOkResponse({ type: Hotel })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "Hotel",
+    action: "read",
+    possession: "own",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async hotel(
     @common.Param() params: HotelWhereUniqueInput
   ): Promise<Hotel | null> {
@@ -93,9 +129,18 @@ export class HotelControllerBase {
     return result;
   }
 
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @common.Patch("/:id")
   @swagger.ApiOkResponse({ type: Hotel })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "Hotel",
+    action: "update",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async updateHotel(
     @common.Param() params: HotelWhereUniqueInput,
     @common.Body() data: HotelUpdateInput
@@ -128,6 +173,14 @@ export class HotelControllerBase {
   @common.Delete("/:id")
   @swagger.ApiOkResponse({ type: Hotel })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "Hotel",
+    action: "delete",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async deleteHotel(
     @common.Param() params: HotelWhereUniqueInput
   ): Promise<Hotel | null> {
@@ -155,8 +208,14 @@ export class HotelControllerBase {
     }
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @common.Get("/:id/rooms")
   @ApiNestedQuery(RoomFindManyArgs)
+  @nestAccessControl.UseRoles({
+    resource: "Room",
+    action: "read",
+    possession: "any",
+  })
   async findRooms(
     @common.Req() request: Request,
     @common.Param() params: HotelWhereUniqueInput
@@ -191,6 +250,11 @@ export class HotelControllerBase {
   }
 
   @common.Post("/:id/rooms")
+  @nestAccessControl.UseRoles({
+    resource: "Hotel",
+    action: "update",
+    possession: "any",
+  })
   async connectRooms(
     @common.Param() params: HotelWhereUniqueInput,
     @common.Body() body: RoomWhereUniqueInput[]
@@ -208,6 +272,11 @@ export class HotelControllerBase {
   }
 
   @common.Patch("/:id/rooms")
+  @nestAccessControl.UseRoles({
+    resource: "Hotel",
+    action: "update",
+    possession: "any",
+  })
   async updateRooms(
     @common.Param() params: HotelWhereUniqueInput,
     @common.Body() body: RoomWhereUniqueInput[]
@@ -225,6 +294,11 @@ export class HotelControllerBase {
   }
 
   @common.Delete("/:id/rooms")
+  @nestAccessControl.UseRoles({
+    resource: "Hotel",
+    action: "update",
+    possession: "any",
+  })
   async disconnectRooms(
     @common.Param() params: HotelWhereUniqueInput,
     @common.Body() body: RoomWhereUniqueInput[]
